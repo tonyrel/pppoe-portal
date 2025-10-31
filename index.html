@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISPConnect - Payment Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --gcash: #e53e3e;
+            --paymaya: #00a3e0;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .welcome-section {
+            flex: 1;
+            background: linear-gradient(rgba(67, 97, 238, 0.85), rgba(63, 55, 201, 0.9)), url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?ixlib=rb-4.0.3') center/cover;
+            color: white;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .welcome-section h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .welcome-section p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .feature i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+            color: var(--success);
+        }
+
+        .payment-section {
+            flex: 1.2;
+            background: white;
+            padding: 40px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .logo i {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-right: 10px;
+        }
+
+        .logo h2 {
+            font-size: 1.8rem;
+            color: var(--dark);
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tab {
+            padding: 12px 25px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--gray);
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+            outline: none;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-gcash {
+            background: var(--gcash);
+        }
+
+        .btn-paymaya {
+            background: var(--paymaya);
+        }
+
+        .account-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .payment-option {
+            border: 2px solid #eee;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .payment-option:hover {
+            border-color: var(--primary);
+            transform: translateY(-5px);
+        }
+
+        .payment-option.selected {
+            border-color: var(--primary);
+            background: rgba(67, 97, 238, 0.05);
+        }
+
+        .payment-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .gcash-icon {
+            color: var(--gcash);
+        }
+
+        .paymaya-icon {
+            color: var(--paymaya);
+        }
+
+        .qr-container {
+            text-align: center;
+            margin: 25px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            background: #ddd;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: 5rem;
+            color: #555;
+        }
+
+        .instructions {
+            background: #e7f5ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+        }
+
+        .status-indicator {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .status-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            width: 100px;
+        }
+
+        .status-step:not(:last-child):after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: -50px;
+            width: 100px;
+            height: 2px;
+            background: #ddd;
+        }
+
+        .status-step.active:not(:last-child):after {
+            background: var(--primary);
+        }
+
+        .step-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .status-step.active .step-icon {
+            background: var(--primary);
+        }
+
+        .status-step.completed .step-icon {
+            background: var(--success);
+        }
+
+        .step-label {
+            font-size: 0.8rem;
+            text-align: center;
+            color: var(--gray);
+        }
+
+        .status-step.active .step-label {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .success-message {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            color: var(--success);
+            margin-bottom: 20px;
+        }
+
+        .demo-accounts {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+
+        .demo-accounts h4 {
+            margin-bottom: 10px;
+            color: var(--success);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 992px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .welcome-section {
+                padding: 30px;
+            }
+            
+            .payment-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <h1>ISPConnect Payment Portal</h1>
+            <p>Fast, secure, and convenient way to pay your internet bills using GCash or PayMaya. Enjoy seamless connectivity with instant payment processing.</p>
+            
+            <div class="features">
+                <div class="feature">
+                    <i class="fas fa-bolt"></i>
+                    <span>Instant Payment Processing</span>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Secure Transactions</span>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-mobile-alt"></i>
+                    <span>Mobile-Friendly</span>
+                </div>
+                <div class="feature">
+                    <i class="fas fa-headset"></i>
+                    <span>24/7 Customer Support</span>
+                </div>
+            </div>
+            
+            <div class="demo-accounts">
+                <h4><i class="fas fa-key"></i> Demo Accounts</h4>
+                <p><strong>Username:</strong> demo1 | <strong>Password:</strong> demo123</p>
+                <p><strong>Username:</strong> demo2 | <strong>Password:</strong> demo123</p>
+                <p style="margin-top: 10px; font-size: 0.8rem; opacity: 0.8;">
+                    <i class="fas fa-info-circle"></i> This is a demo version for GitHub Pages
+                </p>
+            </div>
+        </div>
+        
+        <!-- Payment Section -->
+        <div class="payment-section">
+            <div class="logo">
+                <i class="fas fa-wifi"></i>
+                <h2>ISPConnect</h2>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active" data-tab="login">Login</div>
+                <div class="tab" data-tab="account">Account</div>
+                <div class="tab" data-tab="payment">Payment</div>
+                <div class="tab" data-tab="confirmation">Confirmation</div>
+            </div>
+            
+            <!-- Login Tab -->
+            <div class="tab-content active" id="login">
+                <h3>Client Login</h3>
+                <p style="color: var(--gray); margin-bottom: 25px;">Enter your PPPoE credentials to access your account</p>
+                
+                <div class="form-group">
+                    <label for="username">PPPoE Username</label>
+                    <input type="text" id="username" class="form-control" placeholder="Enter demo1 or demo2" value="demo1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">PPPoE Password</label>
+                    <input type="password" id="password" class="form-control" placeholder="Enter demo123" value="demo123">
+                </div>
+                
+                <button class="btn" id="login-btn">Login to Account</button>
+                
+                <div class="loading" id="login-loading">
+                    <div class="loading-spinner"></div>
+                    <p>Authenticating...</p>
+                </div>
+                
+                <p style="text-align: center; margin-top: 20px; color: var(--gray);">
+                    Forgot your credentials? <a href="#" style="color: var(--primary); text-decoration: none;">Contact Support</a>
+                </p>
+            </div>
+            
+            <!-- Account Tab -->
+            <div class="tab-content" id="account">
+                <h3>Account Overview</h3>
+                <p style="color: var(--gray); margin-bottom: 25px;">Your current account status and billing information</p>
+                
+                <div class="account-info" id="dynamic-account-info">
+                    <!-- Dynamic content will be loaded here -->
+                </div>
+                
+                <button class="btn" id="proceed-payment">Proceed to Payment</button>
+            </div>
+            
+            <!-- Payment Tab -->
+            <div class="tab-content" id="payment">
+                <h3>Payment Method</h3>
+                <p style="color: var(--gray); margin-bottom: 25px;">Select your preferred payment method</p>
+                
+                <div class="payment-options">
+                    <div class="payment-option" data-method="gcash">
+                        <div class="payment-icon gcash-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <h4>GCash</h4>
+                        <p style="font-size: 0.9rem; color: var(--gray);">Pay using your GCash wallet</p>
+                    </div>
+                    
+                    <div class="payment-option" data-method="paymaya">
+                        <div class="payment-icon paymaya-icon">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <h4>PayMaya</h4>
+                        <p style="font-size: 0.9rem; color: var(--gray);">Pay using your PayMaya account</p>
+                    </div>
+                </div>
+                
+                <div id="gcash-payment" class="payment-details" style="display: none;">
+                    <div class="qr-container">
+                        <div class="qr-code" id="gcash-qr">
+                            <!-- QR code will be generated here -->
+                        </div>
+                        <p>Scan this QR code using your GCash app</p>
+                    </div>
+                    
+                    <div class="instructions">
+                        <h4>How to pay with GCash:</h4>
+                        <ol>
+                            <li>Open the GCash app on your phone</li>
+                            <li>Tap "Scan QR"</li>
+                            <li>Point your camera at the QR code above</li>
+                            <li>Enter the amount shown</li>
+                            <li>Confirm the payment</li>
+                        </ol>
+                    </div>
+                    
+                    <button class="btn btn-gcash" id="confirm-gcash">
+                        <span class="btn-text">I've Made the Payment</span>
+                        <div class="loading-spinner" style="display: none; margin: 0 auto;"></div>
+                    </button>
+                </div>
+                
+                <div id="paymaya-payment" class="payment-details" style="display: none;">
+                    <div class="qr-container">
+                        <div class="qr-code" id="paymaya-qr">
+                            <!-- QR code will be generated here -->
+                        </div>
+                        <p>Scan this QR code using your PayMaya app</p>
+                    </div>
+                    
+                    <div class="instructions">
+                        <h4>How to pay with PayMaya:</h4>
+                        <ol>
+                            <li>Open the PayMaya app on your phone</li>
+                            <li>Tap "Scan to Pay"</li>
+                            <li>Point your camera at the QR code above</li>
+                            <li>Enter the amount shown</li>
+                            <li>Confirm the payment</li>
+                        </ol>
+                    </div>
+                    
+                    <button class="btn btn-paymaya" id="confirm-paymaya">
+                        <span class="btn-text">I've Made the Payment</span>
+                        <div class="loading-spinner" style="display: none; margin: 0 auto;"></div>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Confirmation Tab -->
+            <div class="tab-content" id="confirmation">
+                <div class="success-message">
+                    <div class="success-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3>Payment Successful!</h3>
+                    <p style="color: var(--gray); margin: 20px 0;" id="success-message">Your payment has been processed successfully.</p>
+                    
+                    <div class="status-indicator">
+                        <div class="status-step completed">
+                            <div class="step-icon">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="step-label">Login</div>
+                        </div>
+                        <div class="status-step completed">
+                            <div class="step-icon">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="step-label">Account</div>
+                        </div>
+                        <div class="status-step completed">
+                            <div class="step-icon">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="step-label">Payment</div>
+                        </div>
+                        <div class="status-step active">
+                            <div class="step-icon">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="step-label">Complete</div>
+                        </div>
+                    </div>
+                    
+                    <div class="account-info" style="margin-top: 30px;">
+                        <div class="info-row">
+                            <span>Transaction ID:</span>
+                            <span style="font-weight: 600;" id="transaction-id">TX000000</span>
+                        </div>
+                        <div class="info-row">
+                            <span>Payment Method:</span>
+                            <span style="font-weight: 600;" id="payment-method-display">GCash</span>
+                        </div>
+                        <div class="info-row">
+                            <span>Date & Time:</span>
+                            <span style="font-weight: 600;" id="payment-date">Loading...</span>
+                        </div>
+                        <div class="info-row">
+                            <span>Next Billing Date:</span>
+                            <span style="font-weight: 600;" id="next-billing-date">Loading...</span>
+                        </div>
+                    </div>
+                    
+                    <button class="btn" style="margin-top: 25px;" id="new-payment">Make Another Payment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Demo user data
+        const demoUsers = {
+            'demo1': {
+                password: 'demo123',
+                profile: {
+                    plan: 'Fiber 50 Mbps',
+                    speed: '50/25 Mbps',
+                    dataLimit: 'Unlimited',
+                    billingCycle: 'Monthly',
+                    dueDate: 'December 15, 2024',
+                    amountDue: 1299,
+                    username: 'demo1'
+                }
+            },
+            'demo2': {
+                password: 'demo123',
+                profile: {
+                    plan: 'Fiber 100 Mbps',
+                    speed: '100/50 Mbps',
+                    dataLimit: 'Unlimited',
+                    billingCycle: 'Monthly',
+                    dueDate: 'December 20, 2024',
+                    amountDue: 1999,
+                    username: 'demo2'
+                }
+            }
+        };
+
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab switching functionality
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    
+                    // Update active tab
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Show active tab content
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === tabId) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+            
+            // Login button
+            document.getElementById('login-btn').addEventListener('click', function() {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                // Show loading
+                document.getElementById('login-loading').style.display = 'block';
+                this.disabled = true;
+                
+                // Simulate API call delay
+                setTimeout(() => {
+                    if (demoUsers[username] && demoUsers[username].password === password) {
+                        currentUser = username;
+                        loadUserAccount();
+                        document.querySelector('.tab[data-tab="account"]').click();
+                    } else {
+                        alert('Invalid credentials. Please use:\nUsername: demo1 or demo2\nPassword: demo123');
+                    }
+                    
+                    // Hide loading
+                    document.getElementById('login-loading').style.display = 'none';
+                    this.disabled = false;
+                }, 1500);
+            });
+            
+            // Proceed to payment button
+            document.getElementById('proceed-payment').addEventListener('click', function() {
+                document.querySelector('.tab[data-tab="payment"]').click();
+            });
+            
+            // Payment method selection
+            const paymentOptions = document.querySelectorAll('.payment-option');
+            const gcashPayment = document.getElementById('gcash-payment');
+            const paymayaPayment = document.getElementById('paymaya-payment');
+            
+            paymentOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    // Remove selected class from all options
+                    paymentOptions.forEach(opt => opt.classList.remove('selected'));
+                    
+                    // Add selected class to clicked option
+                    this.classList.add('selected');
+                    
+                    const method = this.getAttribute('data-method');
+                    const userProfile = demoUsers[currentUser]?.profile;
+                    const amount = userProfile?.amountDue || 1299;
+                    
+                    // Show corresponding payment details
+                    if (method === 'gcash') {
+                        gcashPayment.style.display = 'block';
+                        paymayaPayment.style.display = 'none';
+                        
+                        // Generate QR code display
+                        document.getElementById('gcash-qr').innerHTML = `
+                            <div style="text-align: center; padding: 20px;">
+                                <div style="width: 160px; height: 160px; background: linear-gradient(45deg, #e53e3e, #c53030); display: flex; align-items: center; justify-content: center; margin: 0 auto; border-radius: 10px; color: white; font-size: 12px;">
+                                    <div style="text-align: center;">
+                                        <i class="fas fa-mobile-alt" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                                        <div>GCASH PAYMENT</div>
+                                        <div style="font-size: 10px; margin-top: 5px;">₱${amount}.00</div>
+                                    </div>
+                                </div>
+                                <p style="margin-top: 10px; font-size: 14px; color: #666;">
+                                    Amount: <strong>₱${amount}.00</strong>
+                                </p>
+                            </div>
+                        `;
+                    } else if (method === 'paymaya') {
+                        gcashPayment.style.display = 'none';
+                        paymayaPayment.style.display = 'block';
+                        
+                        // Generate QR code display
+                        document.getElementById('paymaya-qr').innerHTML = `
+                            <div style="text-align: center; padding: 20px;">
+                                <div style="width: 160px; height: 160px; background: linear-gradient(45deg, #00a3e0, #0077b6); display: flex; align-items: center; justify-content: center; margin: 0 auto; border-radius: 10px; color: white; font-size: 12px;">
+                                    <div style="text-align: center;">
+                                        <i class="fas fa-credit-card" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                                        <div>PAYMAYA</div>
+                                        <div style="font-size: 10px; margin-top: 5px;">₱${amount}.00</div>
+                                    </div>
+                                </div>
+                                <p style="margin-top: 10px; font-size: 14px; color: #666;">
+                                    Amount: <strong>₱${amount}.00</strong>
+                                </p>
+                            </div>
+                        `;
+                    }
+                });
+            });
+            
+            // Confirm payment buttons
+            document.getElementById('confirm-gcash').addEventListener('click', function() {
+                processPayment('GCash');
+            });
+            
+            document.getElementById('confirm-paymaya').addEventListener('click', function() {
+                processPayment('PayMaya');
+            });
+            
+            // New payment button
+            document.getElementById('new-payment').addEventListener('click', function() {
+                resetPortal();
+            });
+            
+            // Enter key support for login
+            document.getElementById('password').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('login-btn').click();
+                }
+            });
+        });
+        
+        function loadUserAccount() {
+            if (!currentUser || !demoUsers[currentUser]) return;
+            
+            const userProfile = demoUsers[currentUser].profile;
+            const accountInfo = document.getElementById('dynamic-account-info');
+            
+            accountInfo.innerHTML = `
+                <div class="info-row">
+                    <span>PPPoE Username:</span>
+                    <span style="font-weight: 600;">${userProfile.username}</span>
+                </div>
+                <div class="info-row">
+                    <span>Plan:</span>
+                    <span style="font-weight: 600;">${userProfile.plan}</span>
+                </div>
+                <div class="info-row">
+                    <span>Speed:</span>
+                    <span style="font-weight: 600;">${userProfile.speed}</span>
+                </div>
+                <div class="info-row">
+                    <span>Data Limit:</span>
+                    <span style="font-weight: 600;">${userProfile.dataLimit}</span>
+                </div>
+                <div class="info-row">
+                    <span>Billing Cycle:</span>
+                    <span style="font-weight: 600;">${userProfile.billingCycle}</span>
+                </div>
+                <div class="info-row">
+                    <span>Due Date:</span>
+                    <span style="font-weight: 600; color: var(--danger);">${userProfile.dueDate}</span>
+                </div>
+                <div class="info-row">
+                    <span>Amount Due:</span>
+                    <span style="font-weight: 600; font-size: 1.2rem;">₱${userProfile.amountDue}.00</span>
+                </div>
+            `;
+        }
+        
+        function processPayment(method) {
+            const userProfile = demoUsers[currentUser]?.profile;
+            const amount = userProfile?.amountDue || 1299;
+            const confirmButton = method === 'GCash' 
+                ? document.getElementById('confirm-gcash') 
+                : document.getElementById('confirm-paymaya');
+            
+            const buttonText = confirmButton.querySelector('.btn-text');
+            const spinner = confirmButton.querySelector('.loading-spinner');
+            
+            // Show loading state
+            buttonText.style.display = 'none';
+            spinner.style.display = 'block';
+            confirmButton.disabled = true;
+            
+            // Simulate payment processing
+            setTimeout(() => {
+                const success = Math.random() > 0.1; // 90% success rate for demo
+                
+                if (success) {
+                    // Update confirmation page
+                    document.getElementById('payment-method-display').textContent = method;
+                    document.getElementById('transaction-id').textContent = 'TX' + Date.now();
+                    document.getElementById('payment-date').textContent = new Date().toLocaleString();
+                    document.getElementById('success-message').innerHTML = 
+                        `Your payment of <strong>₱${amount}.00</strong> has been processed successfully.`;
+                    
+                    // Calculate next billing date (30 days from now)
+                    const nextDate = new Date();
+                    nextDate.setDate(nextDate.getDate() + 30);
+                    document.getElementById('next-billing-date').textContent = nextDate.toLocaleDateString();
+                    
+                    // Switch to confirmation tab
+                    document.querySelector('.tab[data-tab="confirmation"]').click();
+                    
+                    // Show success notification
+                    showNotification('Payment successful! Your account has been updated.', 'success');
+                } else {
+                    // Show error
+                    showNotification('Payment failed. Please try again or use another payment method.', 'error');
+                }
+                
+                // Reset button state
+                buttonText.style.display = 'block';
+                spinner.style.display = 'none';
+                confirmButton.disabled = false;
+                
+            }, 3000);
+        }
+        
+        function resetPortal() {
+            // Reset form
+            document.getElementById('username').value = 'demo1';
+            document.getElementById('password').value = 'demo123';
+            
+            // Reset payment options
+            document.querySelectorAll('.payment-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.getElementById('gcash-payment').style.display = 'none';
+            document.getElementById('paymaya-payment').style.display = 'none';
+            
+            // Reset current user
+            currentUser = null;
+            
+            // Go back to login
+            document.querySelector('.tab[data-tab="login"]').click();
+        }
+        
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                background: ${type === 'error' ? 'var(--danger)' : type === 'success' ? 'var(--success)' : 'var(--primary)'};
+                color: white;
+                border-radius: 8px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                z-index: 10000;
+                max-width: 400px;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.animation = 'slideOut 0.3s ease';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 5000);
+        }
+        
+        // Add CSS for notifications
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
