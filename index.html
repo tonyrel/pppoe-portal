@@ -182,10 +182,15 @@
             width: 100%;
         }
 
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             background: var(--secondary);
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .btn-gcash {
@@ -364,19 +369,6 @@
             margin-bottom: 20px;
         }
 
-        .demo-accounts {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            font-size: 0.9rem;
-        }
-
-        .demo-accounts h4 {
-            margin-bottom: 10px;
-            color: var(--success);
-        }
-
         .loading {
             display: none;
             text-align: center;
@@ -391,6 +383,24 @@
             height: 40px;
             animation: spin 1s linear infinite;
             margin: 0 auto 15px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-offline {
+            background: #f8d7da;
+            color: #721c24;
         }
 
         @keyframes spin {
@@ -438,15 +448,6 @@
                     <span>24/7 Customer Support</span>
                 </div>
             </div>
-            
-            <div class="demo-accounts">
-                <h4><i class="fas fa-key"></i> Demo Accounts</h4>
-                <p><strong>Username:</strong> demo1 | <strong>Password:</strong> demo123</p>
-                <p><strong>Username:</strong> demo2 | <strong>Password:</strong> demo123</p>
-                <p style="margin-top: 10px; font-size: 0.8rem; opacity: 0.8;">
-                    <i class="fas fa-info-circle"></i> This is a demo version for GitHub Pages
-                </p>
-            </div>
         </div>
         
         <!-- Payment Section -->
@@ -470,20 +471,20 @@
                 
                 <div class="form-group">
                     <label for="username">PPPoE Username</label>
-                    <input type="text" id="username" class="form-control" placeholder="Enter demo1 or demo2" value="demo1">
+                    <input type="text" id="username" class="form-control" placeholder="Enter your PPPoE username">
                 </div>
                 
                 <div class="form-group">
                     <label for="password">PPPoE Password</label>
-                    <input type="password" id="password" class="form-control" placeholder="Enter demo123" value="demo123">
+                    <input type="password" id="password" class="form-control" placeholder="Enter your PPPoE password">
                 </div>
                 
-                <button class="btn" id="login-btn">Login to Account</button>
+                <button class="btn" id="login-btn">
+                    <span class="btn-text">Login to Account</span>
+                    <div class="loading-spinner" style="display: none; margin: 0 auto;"></div>
+                </button>
                 
-                <div class="loading" id="login-loading">
-                    <div class="loading-spinner"></div>
-                    <p>Authenticating...</p>
-                </div>
+                <div id="login-message" style="margin-top: 15px; display: none;"></div>
                 
                 <p style="text-align: center; margin-top: 20px; color: var(--gray);">
                     Forgot your credentials? <a href="#" style="color: var(--primary); text-decoration: none;">Contact Support</a>
@@ -626,8 +627,8 @@
                             <span style="font-weight: 600;" id="payment-date">Loading...</span>
                         </div>
                         <div class="info-row">
-                            <span>Next Billing Date:</span>
-                            <span style="font-weight: 600;" id="next-billing-date">Loading...</span>
+                            <span>Days Added:</span>
+                            <span style="font-weight: 600;" id="days-added">30</span>
                         </div>
                     </div>
                     
@@ -638,35 +639,8 @@
     </div>
 
     <script>
-        // Demo user data
-        const demoUsers = {
-            'demo1': {
-                password: 'demo123',
-                profile: {
-                    plan: 'Fiber 50 Mbps',
-                    speed: '50/25 Mbps',
-                    dataLimit: 'Unlimited',
-                    billingCycle: 'Monthly',
-                    dueDate: 'December 15, 2024',
-                    amountDue: 1299,
-                    username: 'demo1'
-                }
-            },
-            'demo2': {
-                password: 'demo123',
-                profile: {
-                    plan: 'Fiber 100 Mbps',
-                    speed: '100/50 Mbps',
-                    dataLimit: 'Unlimited',
-                    billingCycle: 'Monthly',
-                    dueDate: 'December 20, 2024',
-                    amountDue: 1999,
-                    username: 'demo2'
-                }
-            }
-        };
-
         let currentUser = null;
+        let currentUserData = null;
 
         document.addEventListener('DOMContentLoaded', function() {
             // Tab switching functionality
@@ -696,24 +670,40 @@
                 const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
                 
-                // Show loading
-                document.getElementById('login-loading').style.display = 'block';
+                if (!username || !password) {
+                    showMessage('Please enter both username and password', 'error');
+                    return;
+                }
+                
+                // Show loading state
+                const btnText = this.querySelector('.btn-text');
+                const spinner = this.querySelector('.loading-spinner');
+                btnText.style.display = 'none';
+                spinner.style.display = 'block';
                 this.disabled = true;
                 
-                // Simulate API call delay
-                setTimeout(() => {
-                    if (demoUsers[username] && demoUsers[username].password === password) {
-                        currentUser = username;
-                        loadUserAccount();
-                        document.querySelector('.tab[data-tab="account"]').click();
-                    } else {
-                        alert('Invalid credentials. Please use:\nUsername: demo1 or demo2\nPassword: demo123');
-                    }
-                    
-                    // Hide loading
-                    document.getElementById('login-loading').style.display = 'none';
-                    this.disabled = false;
-                }, 1500);
+                // Authenticate with MikroTik
+                authenticateUser(username, password)
+                    .then(result => {
+                        if (result.success) {
+                            currentUser = username;
+                            currentUserData = result.user;
+                            loadUserAccount();
+                            document.querySelector('.tab[data-tab="account"]').click();
+                            showMessage('Login successful!', 'success');
+                        } else {
+                            showMessage(result.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showMessage('Login error: ' + error.message, 'error');
+                    })
+                    .finally(() => {
+                        // Reset button state
+                        btnText.style.display = 'block';
+                        spinner.style.display = 'none';
+                        this.disabled = false;
+                    });
             });
             
             // Proceed to payment button
@@ -735,8 +725,7 @@
                     this.classList.add('selected');
                     
                     const method = this.getAttribute('data-method');
-                    const userProfile = demoUsers[currentUser]?.profile;
-                    const amount = userProfile?.amountDue || 1299;
+                    const amount = 30; // 30 days extension
                     
                     // Show corresponding payment details
                     if (method === 'gcash') {
@@ -750,11 +739,11 @@
                                     <div style="text-align: center;">
                                         <i class="fas fa-mobile-alt" style="font-size: 2rem; margin-bottom: 10px;"></i>
                                         <div>GCASH PAYMENT</div>
-                                        <div style="font-size: 10px; margin-top: 5px;">₱${amount}.00</div>
+                                        <div style="font-size: 10px; margin-top: 5px;">30 Days Extension</div>
                                     </div>
                                 </div>
                                 <p style="margin-top: 10px; font-size: 14px; color: #666;">
-                                    Amount: <strong>₱${amount}.00</strong>
+                                    Amount: <strong>₱${calculateAmount(30)}.00</strong>
                                 </p>
                             </div>
                         `;
@@ -769,11 +758,11 @@
                                     <div style="text-align: center;">
                                         <i class="fas fa-credit-card" style="font-size: 2rem; margin-bottom: 10px;"></i>
                                         <div>PAYMAYA</div>
-                                        <div style="font-size: 10px; margin-top: 5px;">₱${amount}.00</div>
+                                        <div style="font-size: 10px; margin-top: 5px;">30 Days Extension</div>
                                     </div>
                                 </div>
                                 <p style="margin-top: 10px; font-size: 14px; color: #666;">
-                                    Amount: <strong>₱${amount}.00</strong>
+                                    Amount: <strong>₱${calculateAmount(30)}.00</strong>
                                 </p>
                             </div>
                         `;
@@ -783,11 +772,11 @@
             
             // Confirm payment buttons
             document.getElementById('confirm-gcash').addEventListener('click', function() {
-                processPayment('GCash');
+                processPayment('GCash', 30);
             });
             
             document.getElementById('confirm-paymaya').addEventListener('click', function() {
-                processPayment('PayMaya');
+                processPayment('PayMaya', 30);
             });
             
             // New payment button
@@ -803,98 +792,153 @@
             });
         });
         
+        function authenticateUser(username, password) {
+            return fetch('api.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=authenticate&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message);
+                }
+                return data;
+            });
+        }
+        
         function loadUserAccount() {
-            if (!currentUser || !demoUsers[currentUser]) return;
+            if (!currentUser) return;
             
-            const userProfile = demoUsers[currentUser].profile;
+            fetch('api.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=get_user_status&username=${encodeURIComponent(currentUser)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayUserAccount(data.data);
+                } else {
+                    showMessage('Error loading account: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Error: ' + error.message, 'error');
+            });
+        }
+        
+        function displayUserAccount(userData) {
             const accountInfo = document.getElementById('dynamic-account-info');
+            const bytesLimit = userData.limit_bytes || 0;
+            const bytesUsed = userData.bytes_used || 0;
+            const remainingBytes = bytesLimit - bytesUsed;
+            const daysRemaining = Math.floor(remainingBytes / 1073741824); // 1GB per day
             
             accountInfo.innerHTML = `
                 <div class="info-row">
                     <span>PPPoE Username:</span>
-                    <span style="font-weight: 600;">${userProfile.username}</span>
+                    <span style="font-weight: 600;">${currentUser}</span>
                 </div>
                 <div class="info-row">
-                    <span>Plan:</span>
-                    <span style="font-weight: 600;">${userProfile.plan}</span>
+                    <span>Status:</span>
+                    <span class="status-badge ${userData.online ? 'status-online' : 'status-offline'}">
+                        ${userData.online ? 'ONLINE' : 'OFFLINE'}
+                    </span>
                 </div>
                 <div class="info-row">
-                    <span>Speed:</span>
-                    <span style="font-weight: 600;">${userProfile.speed}</span>
+                    <span>Profile:</span>
+                    <span style="font-weight: 600;">${userData.profile}</span>
+                </div>
+                <div class="info-row">
+                    <span>Service:</span>
+                    <span style="font-weight: 600;">${userData.service}</span>
+                </div>
+                <div class="info-row">
+                    <span>Data Used:</span>
+                    <span style="font-weight: 600;">${formatBytes(bytesUsed)}</span>
                 </div>
                 <div class="info-row">
                     <span>Data Limit:</span>
-                    <span style="font-weight: 600;">${userProfile.dataLimit}</span>
+                    <span style="font-weight: 600;">${formatBytes(bytesLimit)}</span>
                 </div>
                 <div class="info-row">
-                    <span>Billing Cycle:</span>
-                    <span style="font-weight: 600;">${userProfile.billingCycle}</span>
+                    <span>Days Remaining:</span>
+                    <span style="font-weight: 600; color: ${daysRemaining < 7 ? 'var(--danger)' : 'var(--success)'};">
+                        ${daysRemaining} days
+                    </span>
                 </div>
                 <div class="info-row">
-                    <span>Due Date:</span>
-                    <span style="font-weight: 600; color: var(--danger);">${userProfile.dueDate}</span>
-                </div>
-                <div class="info-row">
-                    <span>Amount Due:</span>
-                    <span style="font-weight: 600; font-size: 1.2rem;">₱${userProfile.amountDue}.00</span>
+                    <span>Extension Cost:</span>
+                    <span style="font-weight: 600; font-size: 1.2rem;">₱${calculateAmount(30)}.00 (30 days)</span>
                 </div>
             `;
         }
         
-        function processPayment(method) {
-            const userProfile = demoUsers[currentUser]?.profile;
-            const amount = userProfile?.amountDue || 1299;
+        function processPayment(method, days) {
+            if (!currentUser) {
+                showMessage('Please login first', 'error');
+                return;
+            }
+            
             const confirmButton = method === 'GCash' 
                 ? document.getElementById('confirm-gcash') 
                 : document.getElementById('confirm-paymaya');
             
-            const buttonText = confirmButton.querySelector('.btn-text');
+            const btnText = confirmButton.querySelector('.btn-text');
             const spinner = confirmButton.querySelector('.loading-spinner');
             
             // Show loading state
-            buttonText.style.display = 'none';
+            btnText.style.display = 'none';
             spinner.style.display = 'block';
             confirmButton.disabled = true;
             
-            // Simulate payment processing
-            setTimeout(() => {
-                const success = Math.random() > 0.1; // 90% success rate for demo
-                
-                if (success) {
+            // Process payment with MikroTik
+            fetch('api.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=extend_subscription&username=${encodeURIComponent(currentUser)}&days=${days}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
                     // Update confirmation page
                     document.getElementById('payment-method-display').textContent = method;
-                    document.getElementById('transaction-id').textContent = 'TX' + Date.now();
+                    document.getElementById('transaction-id').textContent = data.transaction_id;
                     document.getElementById('payment-date').textContent = new Date().toLocaleString();
+                    document.getElementById('days-added').textContent = days;
                     document.getElementById('success-message').innerHTML = 
-                        `Your payment of <strong>₱${amount}.00</strong> has been processed successfully.`;
-                    
-                    // Calculate next billing date (30 days from now)
-                    const nextDate = new Date();
-                    nextDate.setDate(nextDate.getDate() + 30);
-                    document.getElementById('next-billing-date').textContent = nextDate.toLocaleDateString();
+                        `Your payment of <strong>₱${calculateAmount(days)}.00</strong> has been processed successfully.`;
                     
                     // Switch to confirmation tab
                     document.querySelector('.tab[data-tab="confirmation"]').click();
                     
-                    // Show success notification
-                    showNotification('Payment successful! Your account has been updated.', 'success');
+                    showMessage('Payment successful! Your account has been extended.', 'success');
                 } else {
-                    // Show error
-                    showNotification('Payment failed. Please try again or use another payment method.', 'error');
+                    showMessage('Payment failed: ' + data.message, 'error');
                 }
-                
+            })
+            .catch(error => {
+                showMessage('Payment error: ' + error.message, 'error');
+            })
+            .finally(() => {
                 // Reset button state
-                buttonText.style.display = 'block';
+                btnText.style.display = 'block';
                 spinner.style.display = 'none';
                 confirmButton.disabled = false;
-                
-            }, 3000);
+            });
         }
         
         function resetPortal() {
             // Reset form
-            document.getElementById('username').value = 'demo1';
-            document.getElementById('password').value = 'demo123';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
             
             // Reset payment options
             document.querySelectorAll('.payment-option').forEach(opt => {
@@ -905,59 +949,52 @@
             
             // Reset current user
             currentUser = null;
+            currentUserData = null;
             
             // Go back to login
             document.querySelector('.tab[data-tab="login"]').click();
         }
         
-        function showNotification(message, type = 'info') {
-            // Create notification element
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 20px;
-                background: ${type === 'error' ? 'var(--danger)' : type === 'success' ? 'var(--success)' : 'var(--primary)'};
-                color: white;
-                border-radius: 8px;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-                z-index: 10000;
-                max-width: 400px;
-                animation: slideIn 0.3s ease;
-            `;
-            
-            notification.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
-                    <span>${message}</span>
-                </div>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                if (notification.parentElement) {
-                    notification.style.animation = 'slideOut 0.3s ease';
-                    setTimeout(() => notification.remove(), 300);
-                }
-            }, 5000);
+        function calculateAmount(days) {
+            // Example pricing: ₱43.30 per day (₱1,299 per 30 days)
+            return Math.round(days * 43.30);
         }
         
-        // Add CSS for notifications
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function showMessage(message, type = 'info') {
+            const messageDiv = document.getElementById('login-message');
+            messageDiv.innerHTML = `
+                <div style="padding: 12px; border-radius: 8px; background: ${
+                    type === 'error' ? '#f8d7da' : 
+                    type === 'success' ? '#d4edda' : 
+                    '#d1ecf1'
+                }; color: ${
+                    type === 'error' ? '#721c24' : 
+                    type === 'success' ? '#155724' : 
+                    '#0c5460'
+                }; border: 1px solid ${
+                    type === 'error' ? '#f5c6cb' : 
+                    type === 'success' ? '#c3e6cb' : 
+                    '#bee5eb'
+                };">
+                    <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                    ${message}
+                </div>
+            `;
+            messageDiv.style.display = 'block';
+            
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
     </script>
 </body>
 </html>
