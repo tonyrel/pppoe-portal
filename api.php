@@ -15,9 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
 
 // MikroTik Configuration - PALITAN MO ITO!
-define('MIKROTIK_IP', '192.168.88.1'); // IP ng MikroTik mo
+define('MIKROTIK_IP', '10.0.0.1'); // IP ng MikroTik mo
 define('MIKROTIK_USER', 'payment-api');
-define('MIKROTIK_PASS', 'YourSecurePassword123');
+define('MIKROTIK_PASS', 'server123');
 define('MIKROTIK_PORT', 8728);
 
 class MikroTikAPI {
