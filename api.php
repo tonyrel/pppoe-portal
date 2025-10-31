@@ -8,23 +8,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit(0);
 }
 
-// MikroTik Configuration
-define('MIKROTIK_IP', '10.0.0.1'); // Palitan ng IP ng MikroTik mo
+// MikroTik Configuration - PALITAN MO ITO!
+define('MIKROTIK_IP', '192.168.88.1'); // IP ng MikroTik mo
 define('MIKROTIK_USER', 'payment-api');
-define('MIKROTIK_PASS', 'server123');
+define('MIKROTIK_PASS', 'YourSecurePassword123');
 define('MIKROTIK_PORT', 8728);
 
 class MikroTikAPI {
     private $socket;
-    private $debug = false;
     
     public function connect($host, $user, $pass, $port = 8728) {
         $this->socket = @fsockopen($host, $port, $errno, $errstr, 10);
         if (!$this->socket) {
-            throw new Exception("Connection failed: $errstr ($errno)");
+            throw new Exception("Cannot connect to MikroTik: $errstr ($errno)");
         }
         
-        // Login process
+        // Login to MikroTik
         $this->write('/login');
         $this->read();
         
@@ -119,19 +118,21 @@ try {
             
             $api = new MikroTikAPI();
             if (!$api->connect(MIKROTIK_IP, MIKROTIK_USER, MIKROTIK_PASS)) {
-                throw new Exception('Cannot connect to MikroTik');
+                throw new Exception('Cannot connect to MikroTik router');
             }
             
-            // Check if user exists and credentials are correct
+            // 🔐 CRITICAL: Eto ang authentication sa MikroTik
+            // Naghahanap ng user na match ang username AT password
             $api->write('/ppp/secret/print', false);
             $api->write('?name=' . $username, false);
             $api->write('?password=' . $password);
             $users = $api->read();
             
+            // Kung may user na match, authenticated
             $authenticated = (count($users) > 0);
             
             if ($authenticated) {
-                // Get user details
+                // Kunin ang user details
                 $api->write('/ppp/secret/print', false);
                 $api->write('?name=' . $username);
                 $userDetails = $api->read();
@@ -144,6 +145,12 @@ try {
                     }
                 }
                 
+                // Kunin ang connection status
+                $api->write('/interface/pppoe-server/print', false);
+                $api->write('?user=' . $username);
+                $sessions = $api->read();
+                $isOnline = (count($sessions) > 0);
+                
                 $response = [
                     'success' => true,
                     'message' => 'Authentication successful',
@@ -151,14 +158,23 @@ try {
                         'username' => $username,
                         'profile' => $userData['profile'] ?? 'default',
                         'service' => $userData['service'] ?? 'pppoe',
-                        'limit_bytes' => $userData['limit-bytes-total'] ?? 0
+                        'limit_bytes' => $userData['limit-bytes-total'] ?? 0,
+                        'disabled' => isset($userData['disabled']) ? $userData['disabled'] == 'true' : false,
+                        'online' => $isOnline
                     ]
                 ];
+                
+                // Log successful login
+                error_log("SUCCESS: User $username logged in");
+                
             } else {
                 $response = [
                     'success' => false,
-                    'message' => 'Invalid PPPoE credentials'
+                    'message' => 'Invalid PPPoE username or password'
                 ];
+                
+                // Log failed login
+                error_log("FAILED: Login attempt for user $username");
             }
             
             $api->disconnect();
@@ -177,19 +193,47 @@ try {
                 throw new Exception('Cannot connect to MikroTik');
             }
             
-            // Execute the script to extend user subscription
-            $api->write('/system/script/run', false);
-            $api->write('=number=update-user-expiry', false);
-            $api->write('=user=' . $username, false);
-            $api->write('=days=' . $days);
-            $result = $api->read();
+            // Calculate bytes to add (1GB per day)
+            $bytesPerDay = 1073741824;
+            $bytesToAdd = $days * $bytesPerDay;
+            
+            // Get user current limit
+            $api->write('/ppp/secret/print', false);
+            $api->write('?name=' . $username);
+            $userDetails = $api->read();
+            
+            if (count($userDetails) == 0) {
+                throw new Exception("User $username not found");
+            }
+            
+            // Extract current limit
+            $currentLimit = 0;
+            foreach ($userDetails as $detail) {
+                if (strpos($detail, 'limit-bytes-total=') === 0) {
+                    $currentLimit = str_replace('limit-bytes-total=', '', $detail);
+                    break;
+                }
+            }
+            
+            $newLimit = $currentLimit + $bytesToAdd;
+            
+            // Update user in MikroTik
+            $api->write('/ppp/secret/set', false);
+            $api->write('=.id=' . $userDetails[0], false); // Use the first element as ID
+            $api->write('=limit-bytes-total=' . $newLimit);
+            $api->read();
             
             $response = [
                 'success' => true,
                 'message' => "Subscription extended by $days days successfully",
                 'transaction_id' => 'TX' . time() . rand(1000, 9999),
-                'days_added' => $days
+                'days_added' => $days,
+                'old_limit' => $currentLimit,
+                'new_limit' => $newLimit
             ];
+            
+            // Log the transaction
+            error_log("PAYMENT: User $username extended by $days days. New limit: $newLimit bytes");
             
             $api->disconnect();
             break;
@@ -211,6 +255,10 @@ try {
             $api->write('?name=' . $username);
             $userDetails = $api->read();
             
+            if (count($userDetails) == 0) {
+                throw new Exception("User $username not found");
+            }
+            
             $userData = [];
             foreach ($userDetails as $detail) {
                 if (strpos($detail, '=') !== false) {
@@ -219,7 +267,7 @@ try {
                 }
             }
             
-            // Get active sessions
+            // Get active sessions and bytes used
             $api->write('/interface/pppoe-server/print', false);
             $api->write('?user=' . $username);
             $sessions = $api->read();
@@ -227,7 +275,7 @@ try {
             $isOnline = (count($sessions) > 0);
             $bytesUsed = 0;
             
-            if ($isOnline && isset($sessions[0])) {
+            if ($isOnline && count($sessions) > 0) {
                 foreach ($sessions[0] as $sessionDetail) {
                     if (strpos($sessionDetail, 'bytes-out=') === 0) {
                         $bytesUsed = str_replace('bytes-out=', '', $sessionDetail);
@@ -261,6 +309,9 @@ try {
         'success' => false,
         'message' => $e->getMessage()
     ];
+    
+    // Log errors
+    error_log("API ERROR: " . $e->getMessage());
 }
 
 echo json_encode($response);
